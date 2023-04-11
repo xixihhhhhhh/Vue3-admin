@@ -3,11 +3,17 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
-
-import './assets/main.css'
+import { loadAllPlugins } from './plugins'
+import './permission'
+import '@/assets/iconfont/iconfont.css'
+import '@/styles/index.scss'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import 'normalize.css'
 
 const app = createApp(App)
-
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+    app.component(key, component)
+}
 app.use(createPinia())
 app.use(router)
 
