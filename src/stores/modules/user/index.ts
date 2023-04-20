@@ -13,7 +13,9 @@ export const useUserStore = defineStore({
         roleLevel: 1,
         avatar: '',
         token: '',
-        roles: ''
+        roles: '',
+        imgBaseUrl: "http://icon.mgaronya.com/",
+        blogBaseUrl: "http://icon.mgaronya.com/"
     }),
     // 定义store的action，设置用户信息
     actions: {
@@ -26,7 +28,7 @@ export const useUserStore = defineStore({
         setToken(token: string) {
             this.token = token
         },
-        setRoleLevel(roleLevel: number){
+        setRoleLevel(roleLevel: number) {
             this.roleLevel = roleLevel
         },
         setAvatar(avatar: string) {
