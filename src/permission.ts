@@ -5,10 +5,9 @@
  * @LastEditors: ZY
  * @LastEditTime: 2021-01-27 19:36:01
  */
-
 import NProgress from 'nprogress'
+import { RouteLocationNormalized } from 'vue-router';
 import 'nprogress/nprogress.css'
-// import { useI18n } from 'vue-i18n'
 import router from '@/router'
 import { useStore } from './stores'
 import { ElMessage } from 'element-plus'
@@ -23,16 +22,18 @@ router.beforeEach(async (to: RouteLocationNormalized, _: RouteLocationNormalized
   NProgress.start()
   const store = useStore()
 
-  if (useStore().user.token) {
+  if (window.localStorage.getItem('token')) {
+    // if (to.path === '//dashboard') {
+    //   next({ path: '/dashboard' })
+    // }
     if (to.path === '/login') {
-
-      next({ path: '/' })
+      next({ path: '/dashboard' })
       NProgress.done()
     } else {
       next()
     }
   } else {
-    if (whiteList.indexOf(to.path) !== -1) {
+    if (to.path === '/login') {
       next()
     } else {
       next(`/login?redirect=${to.path}`)
@@ -44,5 +45,4 @@ router.beforeEach(async (to: RouteLocationNormalized, _: RouteLocationNormalized
 router.afterEach((to: RouteLocationNormalized) => {
   console.log(to)
   NProgress.done()
-
 })

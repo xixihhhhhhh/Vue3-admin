@@ -97,3 +97,5 @@ export const toggleClass = (ele: HTMLElement, className: string) => {
   }
   ele.className = classString
 }
+
+export { debounce, throttle } from 'lodash-es'

@@ -7,14 +7,14 @@
           target="_blank"
           href="https://armour.github.io/vue-typescript-admin-docs/guide/advanced/theme.html"
         >
-          {{ t("theme.documentation") }}
+          {{ ("theme.documentation") }}
         </a>
       </template>
       <div class="box-item">
-        <span class="field-label">{{ t("theme.change") }} : </span>
+        <span class="field-label">{{ ("theme.change") }} : </span>
         <el-switch v-model="theme" />
         <aside style="margin-top: 15px">
-          {{ t("theme.tips") }}
+          {{ ("theme.tips") }}
         </aside>
       </div>
     </el-card>
@@ -66,7 +66,6 @@
 <script lang="ts">
 import { defineComponent, reactive, toRefs, watch } from "vue";
 import { toggleClass } from "@/utils";
-import "@/assets/custom-theme/index.css"; // the theme changed version element-ui css
 export default defineComponent({
   setup() {
     const dataMap = reactive({

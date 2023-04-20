@@ -21,12 +21,10 @@
       label-position="left"
     >
       <div class="title-container">
-        <h3 class="title">
-          {{ "系统登录" }}
-        </h3>
+        <h3 class="title">系统登录</h3>
       </div>
 
-      <el-form-item prop="username">
+      <el-form-item prop="Email">
         <span class="svg-container">
           <el-icon :size="14" style="position: relative; top: 4px">
             <User />
@@ -34,8 +32,8 @@
         </span>
         <el-input
           ref="userNameRef"
-          v-model="loginForm.username"
-          :placeholder="'login.username'"
+          v-model="loginForm.Email"
+          placeholder="邮箱"
           name="username"
           type="text"
           tabindex="1"
@@ -49,7 +47,7 @@
         placement="right"
         trigger="contextmenu"
       >
-        <el-form-item prop="password">
+        <el-form-item prop="Password">
           <span class="svg-container">
             <el-icon :size="14" style="position: relative; top: 4px">
               <Lock />
@@ -58,9 +56,9 @@
           <el-input
             :key="passwordType"
             ref="passwordRef"
-            v-model="loginForm.password"
+            v-model="loginForm.Password"
             :type="passwordType"
-            :placeholder="'login.password'"
+            placeholder="密码"
             name="password"
             tabindex="2"
             autocomplete="on"
@@ -84,35 +82,87 @@
           </span>
         </el-form-item>
       </el-tooltip>
+
+      <el-button
+        :loading="loading"
+        type="primary"
+        style="width: 100%; margin: 15px 0"
+        @click.prevent="handleLogin"
+      >
+        登录
+      </el-button>
     </el-form>
   </div>
 </template>
   
 <script lang="ts">
 import {
-  computed,
   defineComponent,
-  onBeforeMount,
   nextTick,
   ref,
   reactive,
   toRefs,
+  watch,
+  onMounted,
 } from "vue";
 import { isEmail } from "@/utils/validate";
-
+import { useRoute, useRouter } from "vue-router";
+import type { LocationQuery } from "vue-router";
+import { ElMessage } from "element-plus";
+import { useStore } from "@/stores";
+import type { FormInstance } from "element-plus";
+import { login, getPersonMsg } from "@/api/user";
 export default defineComponent({
   setup() {
     const userNameRef = ref(null);
     const passwordRef = ref(null);
-    const loginFormRef = ref(null);
+    const router = useRouter();
+    const route = useRoute();
+    const store = useStore();
+    const loginFormRef = ref<FormInstance>();
+    const baseUrl = "http://icon.mgaronya.com/";
+    const validateEmail = (rule: any, value: string, callback: Function) => {
+      if (!isEmail(value)) {
+        callback(new Error("邮箱格式不正确"));
+      } else {
+        callback();
+      }
+    };
+    const validatePassword = (rule: any, value: string, callback: Function) => {
+      if (value.length < 6) {
+        callback(new Error("密码不能少于六位"));
+      } else {
+        callback();
+      }
+    };
     const state = reactive({
       loginForm: {
-        username: "admin",
-        password: "111111",
+        Email: "20zhzhang@stu.edu.cn",
+        Password: "123456",
       },
+
       loginRules: {
-        username: [{ validator: userNameRef, trigger: "blur" }],
-        password: [{ validator: passwordRef, trigger: "blur" }],
+        Email: [
+          { validator: validateEmail, trigger: "blur" },
+          {
+            required: true,
+            message: "请输入邮箱",
+            trigger: "blur",
+          },
+        ],
+        Password: [
+          {
+            required: true,
+            message: "请输入密码",
+            trigger: "blur",
+          },
+          {
+            min: 6,
+            max: 18,
+            message: "密码长度六到18位",
+            trigger: "blur",
+          },
+        ],
       },
       passwordType: "password",
       loading: false,
@@ -123,20 +173,6 @@ export default defineComponent({
     });
 
     const methods = reactive({
-      validateUsername: (rule: any, value: string, callback: Function) => {
-        if (!isEmail(value)) {
-          callback(new Error("邮箱格式不正确"));
-        } else {
-          callback();
-        }
-      },
-      validatePassword: (rule: any, value: string, callback: Function) => {
-        if (value.length < 6) {
-          callback(new Error("密码不能少于六位"));
-        } else {
-          callback();
-        }
-      },
       checkCapslock: (e: KeyboardEvent) => {
         const { key } = e;
         state.capsTooltip =
@@ -153,28 +189,68 @@ export default defineComponent({
         });
       },
       handleLogin: () => {
-        // (loginFormRef.value as any).validate(async (valid: boolean) => {
-        //   if (valid) {
-        //     state.loading = true;
-        //     await store.dispatch(UserActionTypes.ACTION_LOGIN, state.loginForm);
-        //     router
-        //       .push({
-        //         path: state.redirect || "/",
-        //         query: state.otherQuery,
-        //       })
-        //       .catch((err) => {
-        //         console.warn(err);
-        //       });
-        //     // Just to simulate the time of the request
-        //     setTimeout(() => {
-        //       state.loading = false;
-        //     }, 0.5 * 1000);
-        //   } else {
-        //     return false;
-        //   }
-        // });
+        (loginFormRef.value as any).validate(async (valid: boolean) => {
+          if (valid) {
+            state.loading = true;
+            const res = await login(state.loginForm);
+            console.log(res);
+            if (res.code === 200) {
+              state.loading = false;
+              store.user.token = res.data.token;
+              window.localStorage.setItem("token", res.data.token);
+              store.user.setEmail(state.loginForm.Email);
+              const { data } = await getPersonMsg();
+              store.user.setAvatar(baseUrl + data.user.Icon);
+              router.push({
+                path: state.redirect || "/",
+                query: state.otherQuery,
+              });
+            } else {
+              state.loading = false;
+              ElMessage({
+                message: "Congrats, this is a success message.",
+                type: "success",
+              });
+            }
+          }
+        });
       },
     });
+    /**
+     * 从当前路由的查询参数中获取除了 "redirect" 以外的其它参数
+     * @param query 当前路由的查询参数
+     * @returns 返回一个新的对象，包含所有除了 "redirect" 以外的其它参数
+     */
+    function getOtherQuery(query: LocationQuery): LocationQuery {
+      // 使用 Object.keys() 方法获取查询参数对象中的所有属性名，并返回一个数组
+      // 然后使用 reduce() 方法对数组中的每个元素进行处理
+      return Object.keys(query).reduce((acc, cur) => {
+        // 如果当前属性名不是 "redirect"，则将其添加到新的对象中
+        if (cur !== "redirect") {
+          acc[cur] = query[cur]; // 将当前属性添加到新对象中
+        }
+        return acc;
+      }, {} as LocationQuery); // 将一个空对象作为初始值传入 reduce() 方法
+    }
+    onMounted(() => {
+      if (state.loginForm.Email === "") {
+        (userNameRef.value as any).focus();
+      } else if (state.loginForm.Password === "") {
+        (passwordRef.value as any).focus();
+      }
+    });
+    watch(
+      // 监听的数据，返回当前路由的 query 对象
+      () => route.query,
+      // 数据变化时执行的操作
+      (query) => {
+        // 解构获取 query 中的 redirect 和其他参数
+        if (query) {
+          state.redirect = query.redirect?.toString() ?? ""; // 如果 redirect 不存在，则赋值为空字符串
+          state.otherQuery = getOtherQuery(query); // 将其他参数保存到 state.otherQuery 中
+        }
+      }
+    );
     return {
       userNameRef,
       passwordRef,
@@ -209,6 +285,7 @@ export default defineComponent({
 
     .el-input__wrapper {
       width: 100%;
+      height: 100%;
       background: transparent;
       border: 0px;
       box-shadow: none;
